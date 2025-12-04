@@ -385,8 +385,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'trip:read', 'booking:read'])]
     public function getDefaultAvatar(): string
     {
-        $name = urlencode($this->firstName . '+' . $this->lastName);
-        return "https://ui-avatars.com/api/?name={$name}&background=random&color=fff&size=128";
+        $firstInitial = $this->firstName ? mb_substr($this->firstName, 0, 1) : '';
+        $lastInitial = $this->lastName ? mb_substr($this->lastName, 0, 1) : '';
+        $initials = urlencode(strtoupper($firstInitial . ' ' . $lastInitial));
+        
+        return "https://ui-avatars.com/api/?name={$initials}&background=random&color=fff&size=128";
     }
 
     public function isVerified(): ?bool
