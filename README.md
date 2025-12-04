@@ -191,6 +191,7 @@ php bin/phpunit --filter testInscription
 | POST | `/api/upload/avatar` | Upload avatar |
 | GET | `/api/me/trips` | Mes trajets (conducteur) |
 | GET | `/api/me/bookings` | Mes réservations (passager) |
+| GET | `/api/users/{id}/profile` | Profil public d'un utilisateur |
 
 ### Trajets
 | Méthode | Endpoint | Description |

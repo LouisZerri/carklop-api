@@ -11,6 +11,7 @@ use App\Repository\UserRepository;
 use App\State\UserPasswordHasher;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -92,6 +93,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['user:read', 'user:write', 'trip:read', 'booking:read'])]
     private ?string $avatar = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $bio = null;
 
     #[ORM\Column]
     #[Groups(['user:read'])]
@@ -360,6 +365,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setAvatar(?string $avatar): static
     {
         $this->avatar = $avatar;
+        return $this;
+    }
+
+    public function getBio(): ?string
+    {
+        return $this->bio;
+    }
+
+    public function setBio(string $bio): static
+    {
+        $this->bio = $bio;
+
         return $this;
     }
 
@@ -668,4 +685,5 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
         return $this;
     }
+
 }
