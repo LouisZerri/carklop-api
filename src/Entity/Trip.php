@@ -91,6 +91,14 @@ class Trip
     #[Assert\Length(max: 2, maxMessage: 'Code pays sur 2 caractères (DE, IT...)')]
     private ?string $destinationCountry = null;
 
+    #[ORM\Column(nullable: true)]
+    #[Groups(['trip:read', 'trip:write'])]
+    private ?int $stayDuration = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['trip:read', 'trip:write'])]
+    private ?int $distance = null;
+
     #[ORM\Column]
     #[Groups(['trip:read', 'trip:write', 'booking:read'])]
     #[Assert\NotBlank(message: 'La date de départ est obligatoire')]
@@ -245,6 +253,30 @@ class Trip
     public function setDestinationCountry(string $destinationCountry): static
     {
         $this->destinationCountry = $destinationCountry;
+        return $this;
+    }
+
+    public function getStayDuration(): ?int
+    {
+        return $this->stayDuration;
+    }
+
+    public function setStayDuration(?int $stayDuration): static
+    {
+        $this->stayDuration = $stayDuration;
+
+        return $this;
+    }
+
+    public function getDistance(): ?int
+    {
+        return $this->distance;
+    }
+
+    public function setDistance(?int $distance): static
+    {
+        $this->distance = $distance;
+
         return $this;
     }
 
