@@ -38,6 +38,11 @@ security:
             stateless: true
             security: false
 
+        social_auth:
+            pattern: ^/api/auth
+            stateless: true
+            security: false
+
         api:
             pattern: ^/api
             stateless: true
@@ -55,6 +60,9 @@ security:
         - { path: ^/api/users, methods: [POST], roles: PUBLIC_ACCESS }
         - { path: ^/api/trips, methods: [GET], roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth, roles: PUBLIC_ACCESS }
+        - { path: ^/api/forgot-password, roles: PUBLIC_ACCESS }
+        - { path: ^/api/reset-password, roles: PUBLIC_ACCESS }
 
 when@test:
     security:

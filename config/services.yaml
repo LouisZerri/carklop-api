@@ -44,6 +44,11 @@ services:
         arguments:
             $appUrl: '%env(APP_URL)%'
 
+    App\Service\SocialAuthService:
+        arguments:
+            $googleClientId: '%env(GOOGLE_CLIENT_ID)%'
+            $appleClientId: '%env(APPLE_CLIENT_ID)%'
+
 when@test:
     services:
         App\Tests\Mock\StripeServiceMock:

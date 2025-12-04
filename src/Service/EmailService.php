@@ -58,8 +58,58 @@ class EmailService
                     <p>Ce lien expire dans 24 heures.</p>
                 </div>
                 <div class="footer">
-                    <p>© CarKlop - Covoiturage transfrontalier</p>
+                    <p>© Carklop - Covoiturage transfrontalier</p>
                 </div>
+            </div>
+        </body>
+        </html>
+        HTML;
+    }
+
+    public function sendPasswordResetEmail(User $user): void
+    {
+        $resetUrl = $this->appUrl . '/reset-password/' . $user->getResetPasswordToken();
+
+        $email = (new Email())
+            ->from('noreply@carklop.fr')
+            ->to($user->getEmail())
+            ->subject('Réinitialisation de votre mot de passe CarKlop')
+            ->html($this->renderResetEmail($user, $resetUrl));
+
+        $this->mailer->send($email);
+    }
+
+    private function renderResetEmail(User $user, string $resetUrl): string
+    {
+        return <<<HTML
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Réinitialisation mot de passe</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h1 style="color: #4F46E5;">Réinitialisation de mot de passe</h1>
+                <p>Bonjour {$user->getFirstName()},</p>
+                <p>Vous avez demandé à réinitialiser votre mot de passe Carklop.</p>
+                <p>Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :</p>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="{$resetUrl}" 
+                    style="background-color: #4F46E5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                        Réinitialiser mon mot de passe
+                    </a>
+                </p>
+                <p style="color: #666; font-size: 14px;">
+                    Ou copiez ce lien dans votre navigateur :<br>
+                    <a href="{$resetUrl}">{$resetUrl}</a>
+                </p>
+                <p style="color: #666; font-size: 14px;">Ce lien expire dans 1 heure.</p>
+                <p style="color: #999; font-size: 12px;">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                <p style="color: #999; font-size: 12px; text-align: center;">
+                    © Carklop - Covoiturage transfrontalier
+                </p>
             </div>
         </body>
         </html>

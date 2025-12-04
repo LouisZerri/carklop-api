@@ -1,13 +1,13 @@
-# Carklop API
+# CarKlop API
 
-Backend API pour Carklop, une plateforme de covoiturage transfrontalier.
+Backend API pour CarKlop, une plateforme de covoiturage transfrontalier.
 
 ## Stack Technique
 
 - **Framework** : Symfony 7
 - **API** : API Platform 4
 - **Base de données** : MySQL 8
-- **Authentification** : JWT (LexikJWTAuthenticationBundle)
+- **Authentification** : JWT + Google + Apple Sign In
 - **Paiements** : Stripe Connect + Stripe Payments
 - **Notifications** : Expo Push Notifications
 
@@ -23,7 +23,7 @@ Backend API pour Carklop, une plateforme de covoiturage transfrontalier.
 ### Installation
 ```bash
 # Cloner le projet
-git clone <repo>
+git clone https://github.com/LouisZerri/carklop-api
 cd carklop-api
 
 # Installer les dépendances
@@ -51,6 +51,8 @@ JWT_PASSPHRASE=your_passphrase
 STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_PUBLISHABLE_KEY=pk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
+GOOGLE_CLIENT_ID=your_google_client_id
+APPLE_CLIENT_ID=your_apple_client_id
 APP_URL=http://localhost:8000
 MAILER_DSN=smtp://user:password@smtp.mailtrap.io:2525
 ```
@@ -73,9 +75,9 @@ Swagger UI disponible sur `http://localhost:8000/api`
 ## Architecture
 ```
 src/
-├── Controller/          # Controllers custom (Booking, Message, Stripe, etc.)
+├── Controller/          # Controllers custom (Booking, Message, Stripe, SocialAuth, etc.)
 ├── Entity/              # Entités Doctrine
-├── Service/             # Services métier (Stripe, Email, Notification)
+├── Service/             # Services métier (Stripe, Email, Notification, SocialAuth)
 ├── State/               # Processors API Platform
 ├── MessageHandler/      # Handlers Messenger (transferts auto)
 ├── Message/             # Messages Messenger
@@ -96,6 +98,18 @@ src/
 | Review | Avis des passagers sur les conducteurs |
 | Notification | Historique des notifications |
 | DeviceToken | Tokens push Expo des appareils |
+
+## Authentification
+
+### JWT (email/password)
+- `POST /api/login` : Connexion classique
+- `POST /api/users` : Inscription
+
+### OAuth (réseaux sociaux)
+- `POST /api/auth/google` : Connexion Google
+- `POST /api/auth/apple` : Connexion Apple
+
+Les connexions sociales créent automatiquement un compte si l'email n'existe pas, ou lient le compte social à un compte existant.
 
 ## Logique Métier
 
@@ -138,18 +152,94 @@ php bin/phpunit tests/E2E/UserTest.php
 php bin/phpunit --filter testInscription
 ```
 
-### Couverture des tests (97 tests)
+### Couverture des tests (104 tests)
 
-- UserTest : 30 tests (inscription, login, profil, avatar, vérification email)
-- TripTest : 7 tests (CRUD trajets, filtres)
-- BookingTest : 8 tests (réservation, confirmation, paiement)
-- CancellationTest : 8 tests (annulations, remboursements)
-- MessageTest : 9 tests (conversations, messages)
-- ReviewTest : 7 tests (avis, notation)
-- StripeConnectTest : 6 tests (onboarding conducteur)
-- StripeWebhookTest : 5 tests (webhooks paiement)
-- NotificationTest : 11 tests (tokens push, notifications)
-- TransferTest : 6 tests (transferts automatiques)
+| Fichier | Tests | Fonctionnalités |
+|---------|-------|-----------------|
+| UserTest | 30 | Inscription, login, profil, avatar, vérification email |
+| TripTest | 7 | CRUD trajets, filtres |
+| BookingTest | 8 | Réservation, confirmation, paiement |
+| CancellationTest | 8 | Annulations, remboursements |
+| MessageTest | 9 | Conversations, messages |
+| ReviewTest | 7 | Avis, notation |
+| StripeConnectTest | 6 | Onboarding conducteur |
+| StripeWebhookTest | 5 | Webhooks paiement |
+| NotificationTest | 11 | Tokens push, notifications |
+| TransferTest | 6 | Transferts automatiques |
+| SocialAuthTest | 7 | Google, Apple Sign In |
+
+## Endpoints API
+
+### Auth
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/login` | Connexion (email/password) |
+| POST | `/api/users` | Inscription |
+| POST | `/api/auth/google` | Connexion Google |
+| POST | `/api/auth/apple` | Connexion Apple |
+| GET | `/api/verify-email/{token}` | Vérification email |
+| POST | `/api/resend-verification` | Renvoyer email vérification |
+| POST | `/api/forgot-password` | Demander reset mot de passe |
+| GET | `/api/reset-password/verify/{token}` | Vérifier token reset |
+| POST | `/api/reset-password` | Réinitialiser mot de passe |
+
+### Profil
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/api/me` | Mon profil |
+| PATCH | `/api/users/{id}` | Modifier profil |
+| POST | `/api/upload/avatar` | Upload avatar |
+| GET | `/api/me/trips` | Mes trajets (conducteur) |
+| GET | `/api/me/bookings` | Mes réservations (passager) |
+
+### Trajets
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/api/trips` | Liste trajets (filtres disponibles) |
+| GET | `/api/trips/{id}` | Détail trajet |
+| POST | `/api/trips` | Créer trajet |
+| PATCH | `/api/trips/{id}` | Modifier trajet |
+
+### Réservations
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/bookings/create` | Créer réservation |
+| POST | `/api/bookings/{id}/confirm` | Confirmer paiement |
+| POST | `/api/bookings/{id}/cancel` | Annuler (passager) |
+| POST | `/api/bookings/trip/{tripId}/cancel` | Annuler trajet (conducteur) |
+
+### Messages
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/api/messages/conversations` | Mes conversations |
+| GET | `/api/messages/conversations/{id}` | Messages d'une conversation |
+| POST | `/api/messages/conversations/{id}/send` | Envoyer message |
+| POST | `/api/messages/start/{bookingId}` | Démarrer conversation |
+
+### Avis
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/reviews` | Laisser un avis |
+| GET | `/api/reviews/user/{id}` | Avis d'un utilisateur |
+
+### Notifications
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/notifications/register-token` | Enregistrer token push |
+| GET | `/api/notifications` | Mes notifications |
+| POST | `/api/notifications/{id}/read` | Marquer comme lue |
+| POST | `/api/notifications/read-all` | Tout marquer comme lu |
+
+### Stripe Connect
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/stripe/connect/onboarding` | Créer compte + lien onboarding |
+| GET | `/api/stripe/connect/status` | Statut compte Connect |
+
+### Webhook
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/webhook/stripe` | Webhook Stripe |
 
 ## Commandes utiles
 ```bash
@@ -162,6 +252,19 @@ php bin/console debug:router
 # Lancer le scheduler (production)
 php bin/console messenger:consume scheduler_default
 ```
+
+## Configuration OAuth
+
+### Google
+1. Créer un projet sur [Google Cloud Console](https://console.cloud.google.com/)
+2. Activer l'API Google+ et créer des identifiants OAuth 2.0
+3. Ajouter le Client ID dans `GOOGLE_CLIENT_ID`
+
+### Apple
+1. Créer un App ID sur [Apple Developer](https://developer.apple.com/)
+2. Activer "Sign in with Apple"
+3. Créer un Services ID
+4. Ajouter le Client ID dans `APPLE_CLIENT_ID`
 
 ## Fixtures de test
 
@@ -194,3 +297,7 @@ Lancer le worker Messenger pour les transferts automatiques :
 ```bash
 php bin/console messenger:consume scheduler_default
 ```
+
+## Licence
+
+Propriétaire - Louis ZERRI

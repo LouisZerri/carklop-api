@@ -151,6 +151,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $emailVerificationToken = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $googleId = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $appleId = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $resetPasswordToken = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $resetPasswordTokenExpiresAt = null;
+
     public function __construct()
     {
         $this->trips = new ArrayCollection();
@@ -650,6 +662,54 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEmailVerificationToken(?string $emailVerificationToken): static
     {
         $this->emailVerificationToken = $emailVerificationToken;
+
+        return $this;
+    }
+
+    public function getGoogleId(): ?string
+    {
+        return $this->googleId;
+    }
+
+    public function setGoogleId(?string $googleId): static
+    {
+        $this->googleId = $googleId;
+
+        return $this;
+    }
+
+    public function getAppleId(): ?string
+    {
+        return $this->appleId;
+    }
+
+    public function setAppleId(?string $appleId): static
+    {
+        $this->appleId = $appleId;
+
+        return $this;
+    }
+
+    public function getResetPasswordToken(): ?string
+    {
+        return $this->resetPasswordToken;
+    }
+
+    public function setResetPasswordToken(?string $resetPasswordToken): static
+    {
+        $this->resetPasswordToken = $resetPasswordToken;
+
+        return $this;
+    }
+
+    public function getResetPasswordTokenExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->resetPasswordTokenExpiresAt;
+    }
+
+    public function setResetPasswordTokenExpiresAt(?\DateTimeImmutable $resetPasswordTokenExpiresAt): static
+    {
+        $this->resetPasswordTokenExpiresAt = $resetPasswordTokenExpiresAt;
 
         return $this;
     }
