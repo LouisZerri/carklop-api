@@ -10,11 +10,13 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: ConversationRepository::class)]
 class Conversation
 {
+    // ==== Identifiant principal ====
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
+    // ==== Relations ====
     #[ORM\OneToOne(inversedBy: 'conversation', cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
     private ?Booking $booking = null;
@@ -27,27 +29,32 @@ class Conversation
     #[ORM\JoinColumn(nullable: false)]
     private ?User $passenger = null;
 
-    #[ORM\Column]
-    private ?\DateTimeImmutable $createdAt = null;
-
-    #[ORM\Column]
-    private ?\DateTimeImmutable $updatedAt = null;
-
     /**
      * @var Collection<int, Message>
      */
     #[ORM\OneToMany(targetEntity: Message::class, mappedBy: 'conversation')]
     private Collection $messages;
 
+    // ==== Attributs de date ====
+    #[ORM\Column]
+    private ?\DateTimeImmutable $createdAt = null;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $updatedAt = null;
+
+    // ==== Constructeur ====
     public function __construct()
     {
         $this->messages = new ArrayCollection();
     }
 
+    // ==== Getters & Setters : Identifiant ====
     public function getId(): ?int
     {
         return $this->id;
     }
+
+    // ==== Getters & Setters : Relations ====
 
     public function getBooking(): ?Booking
     {
@@ -57,7 +64,6 @@ class Conversation
     public function setBooking(Booking $booking): static
     {
         $this->booking = $booking;
-
         return $this;
     }
 
@@ -69,7 +75,6 @@ class Conversation
     public function setDriver(?User $driver): static
     {
         $this->driver = $driver;
-
         return $this;
     }
 
@@ -81,31 +86,6 @@ class Conversation
     public function setPassenger(?User $passenger): static
     {
         $this->passenger = $passenger;
-
-        return $this;
-    }
-
-    public function getCreatedAt(): ?\DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
-
-    public function setCreatedAt(\DateTimeImmutable $createdAt): static
-    {
-        $this->createdAt = $createdAt;
-
-        return $this;
-    }
-
-    public function getUpdatedAt(): ?\DateTimeImmutable
-    {
-        return $this->updatedAt;
-    }
-
-    public function setUpdatedAt(\DateTimeImmutable $updatedAt): static
-    {
-        $this->updatedAt = $updatedAt;
-
         return $this;
     }
 
@@ -123,7 +103,6 @@ class Conversation
             $this->messages->add($message);
             $message->setConversation($this);
         }
-
         return $this;
     }
 
@@ -135,7 +114,30 @@ class Conversation
                 $message->setConversation(null);
             }
         }
+        return $this;
+    }
 
+    // ==== Getters & Setters : Dates ====
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(\DateTimeImmutable $updatedAt): static
+    {
+        $this->updatedAt = $updatedAt;
         return $this;
     }
 }

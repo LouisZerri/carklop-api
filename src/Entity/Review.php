@@ -21,12 +21,14 @@ use Doctrine\ORM\Mapping as ORM;
 )]
 class Review
 {
+    // ==== Identifiant principal ====
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['review:read'])]
     private ?int $id = null;
 
+    // ==== Relations ====
     #[ORM\ManyToOne(inversedBy: 'reviews')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['review:read'])]
@@ -42,6 +44,7 @@ class Review
     #[Groups(['review:read'])]
     private ?User $target = null;
 
+    // ==== Attributs ====
     #[ORM\Column]
     #[Assert\NotBlank(message: 'La note est obligatoire')]
     #[Assert\Range(min: 1, max: 5, notInRangeMessage: 'Note entre 1 et 5')]
@@ -56,11 +59,13 @@ class Review
     #[Groups(['review:read'])]
     private ?\DateTimeImmutable $createdAt = null;
 
+    // ==== Getters & Setters : Identifiant principal ====
     public function getId(): ?int
     {
         return $this->id;
     }
 
+    // ==== Getters & Setters : Relations ====
     public function getBooking(): ?Booking
     {
         return $this->booking;
@@ -69,7 +74,6 @@ class Review
     public function setBooking(?Booking $booking): static
     {
         $this->booking = $booking;
-
         return $this;
     }
 
@@ -81,7 +85,6 @@ class Review
     public function setAuthor(?User $author): static
     {
         $this->author = $author;
-
         return $this;
     }
 
@@ -93,10 +96,10 @@ class Review
     public function setTarget(?User $target): static
     {
         $this->target = $target;
-
         return $this;
     }
 
+    // ==== Getters & Setters : Attributs ====
     public function getRating(): ?int
     {
         return $this->rating;
@@ -105,7 +108,6 @@ class Review
     public function setRating(int $rating): static
     {
         $this->rating = $rating;
-
         return $this;
     }
 
@@ -117,7 +119,6 @@ class Review
     public function setComment(?string $comment): static
     {
         $this->comment = $comment;
-
         return $this;
     }
 
@@ -129,7 +130,6 @@ class Review
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
     }
 }

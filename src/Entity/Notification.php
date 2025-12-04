@@ -9,15 +9,18 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: NotificationRepository::class)]
 class Notification
 {
+    // ==== Identifiant principal ====
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
+    // ==== Relations ====
     #[ORM\ManyToOne(inversedBy: 'notifications')]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
+    // ==== Attributs ====
     #[ORM\Column(length: 100)]
     private ?string $title = null;
 
@@ -36,11 +39,13 @@ class Notification
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
+    // ==== Getters & Setters : Identifiant principal ====
     public function getId(): ?int
     {
         return $this->id;
     }
 
+    // ==== Getters & Setters : Relations ====
     public function getUser(): ?User
     {
         return $this->user;
@@ -49,10 +54,10 @@ class Notification
     public function setUser(?User $user): static
     {
         $this->user = $user;
-
         return $this;
     }
 
+    // ==== Getters & Setters : Attributs ====
     public function getTitle(): ?string
     {
         return $this->title;
@@ -61,7 +66,6 @@ class Notification
     public function setTitle(string $title): static
     {
         $this->title = $title;
-
         return $this;
     }
 
@@ -73,7 +77,6 @@ class Notification
     public function setBody(string $body): static
     {
         $this->body = $body;
-
         return $this;
     }
 
@@ -85,7 +88,6 @@ class Notification
     public function setType(string $type): static
     {
         $this->type = $type;
-
         return $this;
     }
 
@@ -97,7 +99,6 @@ class Notification
     public function setData(?array $data): static
     {
         $this->data = $data;
-
         return $this;
     }
 
@@ -109,7 +110,6 @@ class Notification
     public function setIsRead(bool $isRead): static
     {
         $this->isRead = $isRead;
-
         return $this;
     }
 
@@ -121,7 +121,6 @@ class Notification
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
     }
 }

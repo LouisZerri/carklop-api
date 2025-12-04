@@ -7,7 +7,6 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
-use ApiPlatform\Metadata\Put;
 use App\Repository\UserRepository;
 use App\State\UserPasswordHasher;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -36,6 +35,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 )]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    // ----- Identité et authentification -----
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -47,15 +47,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\Email(message: 'Email invalide')]
     private ?string $email = null;
 
-    /**
-     * @var list<string> The user roles
-     */
     #[ORM\Column]
     private array $roles = [];
 
-    /**
-     * @var string The hashed password
-     */
     #[ORM\Column]
     private ?string $password = null;
 
@@ -64,6 +58,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\Length(min: 6, minMessage: 'Minimum 6 caractères')]
     private ?string $plainPassword = null;
 
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $emailVerificationToken = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $googleId = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $appleId = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $resetPasswordToken = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $resetPasswordTokenExpiresAt = null;
+
+    // ----- Infos utilisateur -----
     #[ORM\Column(length: 50)]
     #[Groups(['user:read', 'user:write', 'trip:read', 'booking:read'])]
     #[Assert\NotBlank(message: 'Le prénom est obligatoire')]
@@ -94,6 +104,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read'])]
     private ?\DateTimeImmutable $createdAt = null;
 
+    // ----- Relations principales -----
     /**
      * @var Collection<int, Trip>
      */
@@ -106,6 +117,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'passenger', orphanRemoval: true)]
     private Collection $bookings;
 
+    // ----- Relations secondaires -----
     /**
      * @var Collection<int, Review>
      */
@@ -148,21 +160,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Message::class, mappedBy: 'sender')]
     private Collection $messagesSent;
 
-    #[ORM\Column(length: 100, nullable: true)]
-    private ?string $emailVerificationToken = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $googleId = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $appleId = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $resetPasswordToken = null;
-
-    #[ORM\Column(nullable: true)]
-    private ?\DateTimeImmutable $resetPasswordTokenExpiresAt = null;
-
+    // ----- Constructeur -----
     public function __construct()
     {
         $this->trips = new ArrayCollection();
@@ -178,6 +176,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->messagesSent = new ArrayCollection();
     }
 
+    // ----- Getters/Setters Id & Auth -----
     public function getId(): ?int
     {
         return $this->id;
@@ -197,7 +196,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     /**
      * A visual identifier that represents this user.
-     *
      * @see UserInterface
      */
     public function getUserIdentifier(): string
@@ -211,9 +209,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getRoles(): array
     {
         $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
         $roles[] = 'ROLE_USER';
-
         return array_unique($roles);
     }
 
@@ -223,7 +219,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setRoles(array $roles): static
     {
         $this->roles = $roles;
-
         return $this;
     }
 
@@ -238,7 +233,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPassword(string $password): static
     {
         $this->password = $password;
-
         return $this;
     }
 
@@ -260,7 +254,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $data = (array) $this;
         $data["\0".self::class."\0password"] = hash('crc32c', $this->password);
-
         return $data;
     }
 
@@ -270,6 +263,62 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->plainPassword = null;
     }
 
+    public function getEmailVerificationToken(): ?string
+    {
+        return $this->emailVerificationToken;
+    }
+
+    public function setEmailVerificationToken(?string $emailVerificationToken): static
+    {
+        $this->emailVerificationToken = $emailVerificationToken;
+        return $this;
+    }
+
+    public function getGoogleId(): ?string
+    {
+        return $this->googleId;
+    }
+
+    public function setGoogleId(?string $googleId): static
+    {
+        $this->googleId = $googleId;
+        return $this;
+    }
+
+    public function getAppleId(): ?string
+    {
+        return $this->appleId;
+    }
+
+    public function setAppleId(?string $appleId): static
+    {
+        $this->appleId = $appleId;
+        return $this;
+    }
+
+    public function getResetPasswordToken(): ?string
+    {
+        return $this->resetPasswordToken;
+    }
+
+    public function setResetPasswordToken(?string $resetPasswordToken): static
+    {
+        $this->resetPasswordToken = $resetPasswordToken;
+        return $this;
+    }
+
+    public function getResetPasswordTokenExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->resetPasswordTokenExpiresAt;
+    }
+
+    public function setResetPasswordTokenExpiresAt(?\DateTimeImmutable $resetPasswordTokenExpiresAt): static
+    {
+        $this->resetPasswordTokenExpiresAt = $resetPasswordTokenExpiresAt;
+        return $this;
+    }
+
+    // ----- Getters/Setters infos utilisateur -----
     public function getFirstName(): ?string
     {
         return $this->firstName;
@@ -278,7 +327,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setFirstName(string $firstName): static
     {
         $this->firstName = $firstName;
-
         return $this;
     }
 
@@ -290,7 +338,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setLastName(string $lastName): static
     {
         $this->lastName = $lastName;
-
         return $this;
     }
 
@@ -302,7 +349,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPhone(string $phone): static
     {
         $this->phone = $phone;
-
         return $this;
     }
 
@@ -314,7 +360,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setAvatar(?string $avatar): static
     {
         $this->avatar = $avatar;
-
         return $this;
     }
 
@@ -333,7 +378,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setIsVerified(bool $isVerified): static
     {
         $this->isVerified = $isVerified;
-
         return $this;
     }
 
@@ -345,7 +389,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setStripeAccountId(?string $stripeAccountId): static
     {
         $this->stripeAccountId = $stripeAccountId;
-
         return $this;
     }
 
@@ -357,10 +400,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
     }
 
+    // ----- Relations principales : trip et booking -----
     /**
      * @return Collection<int, Trip>
      */
@@ -375,19 +418,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->trips->add($trip);
             $trip->setDriver($this);
         }
-
         return $this;
     }
 
     public function removeTrip(Trip $trip): static
     {
         if ($this->trips->removeElement($trip)) {
-            // set the owning side to null (unless already changed)
             if ($trip->getDriver() === $this) {
                 $trip->setDriver(null);
             }
         }
-
         return $this;
     }
 
@@ -405,22 +445,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->bookings->add($booking);
             $booking->setPassenger($this);
         }
-
         return $this;
     }
 
     public function removeBooking(Booking $booking): static
     {
         if ($this->bookings->removeElement($booking)) {
-            // set the owning side to null (unless already changed)
             if ($booking->getPassenger() === $this) {
                 $booking->setPassenger(null);
             }
         }
-
         return $this;
     }
 
+    // ----- Reviews (reçues & données) -----
     /**
      * @return Collection<int, Review>
      */
@@ -435,19 +473,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->reviewsGiven->add($reviewsGiven);
             $reviewsGiven->setAuthor($this);
         }
-
         return $this;
     }
 
     public function removeReviewsGiven(Review $reviewsGiven): static
     {
         if ($this->reviewsGiven->removeElement($reviewsGiven)) {
-            // set the owning side to null (unless already changed)
             if ($reviewsGiven->getAuthor() === $this) {
                 $reviewsGiven->setAuthor(null);
             }
         }
-
         return $this;
     }
 
@@ -465,19 +500,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->reviewsReceived->add($reviewsReceived);
             $reviewsReceived->setTarget($this);
         }
-
         return $this;
     }
 
     public function removeReviewsReceived(Review $reviewsReceived): static
     {
         if ($this->reviewsReceived->removeElement($reviewsReceived)) {
-            // set the owning side to null (unless already changed)
             if ($reviewsReceived->getTarget() === $this) {
                 $reviewsReceived->setTarget(null);
             }
         }
-
         return $this;
     }
 
@@ -485,16 +517,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getAverageRating(): ?float
     {
         $reviews = $this->reviewsReceived;
-        
         if ($reviews->isEmpty()) {
             return null;
         }
-
         $total = 0;
         foreach ($reviews as $review) {
             $total += $review->getRating();
         }
-
         return round($total / $reviews->count(), 1);
     }
 
@@ -504,6 +533,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->reviewsReceived->count();
     }
 
+    // ----- Tokens, notifications, conversations & messages -----
     /**
      * @return Collection<int, DeviceToken>
      */
@@ -518,19 +548,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->deviceTokens->add($deviceToken);
             $deviceToken->setUser($this);
         }
-
         return $this;
     }
 
     public function removeDeviceToken(DeviceToken $deviceToken): static
     {
         if ($this->deviceTokens->removeElement($deviceToken)) {
-            // set the owning side to null (unless already changed)
             if ($deviceToken->getUser() === $this) {
                 $deviceToken->setUser(null);
             }
         }
-
         return $this;
     }
 
@@ -548,19 +575,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->notifications->add($notification);
             $notification->setUser($this);
         }
-
         return $this;
     }
 
     public function removeNotification(Notification $notification): static
     {
         if ($this->notifications->removeElement($notification)) {
-            // set the owning side to null (unless already changed)
             if ($notification->getUser() === $this) {
                 $notification->setUser(null);
             }
         }
-
         return $this;
     }
 
@@ -578,19 +602,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->conversationsAsDriver->add($conversationsAsDriver);
             $conversationsAsDriver->setDriver($this);
         }
-
         return $this;
     }
 
     public function removeConversationsAsDriver(Conversation $conversationsAsDriver): static
     {
         if ($this->conversationsAsDriver->removeElement($conversationsAsDriver)) {
-            // set the owning side to null (unless already changed)
             if ($conversationsAsDriver->getDriver() === $this) {
                 $conversationsAsDriver->setDriver(null);
             }
         }
-
         return $this;
     }
 
@@ -608,19 +629,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->conversationsAsPassenger->add($conversationsAsPassenger);
             $conversationsAsPassenger->setPassenger($this);
         }
-
         return $this;
     }
 
     public function removeConversationsAsPassenger(Conversation $conversationsAsPassenger): static
     {
         if ($this->conversationsAsPassenger->removeElement($conversationsAsPassenger)) {
-            // set the owning side to null (unless already changed)
             if ($conversationsAsPassenger->getPassenger() === $this) {
                 $conversationsAsPassenger->setPassenger(null);
             }
         }
-
         return $this;
     }
 
@@ -638,79 +656,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->messagesSent->add($messagesSent);
             $messagesSent->setSender($this);
         }
-
         return $this;
     }
 
     public function removeMessagesSent(Message $messagesSent): static
     {
         if ($this->messagesSent->removeElement($messagesSent)) {
-            // set the owning side to null (unless already changed)
             if ($messagesSent->getSender() === $this) {
                 $messagesSent->setSender(null);
             }
         }
-
-        return $this;
-    }
-
-    public function getEmailVerificationToken(): ?string
-    {
-        return $this->emailVerificationToken;
-    }
-
-    public function setEmailVerificationToken(?string $emailVerificationToken): static
-    {
-        $this->emailVerificationToken = $emailVerificationToken;
-
-        return $this;
-    }
-
-    public function getGoogleId(): ?string
-    {
-        return $this->googleId;
-    }
-
-    public function setGoogleId(?string $googleId): static
-    {
-        $this->googleId = $googleId;
-
-        return $this;
-    }
-
-    public function getAppleId(): ?string
-    {
-        return $this->appleId;
-    }
-
-    public function setAppleId(?string $appleId): static
-    {
-        $this->appleId = $appleId;
-
-        return $this;
-    }
-
-    public function getResetPasswordToken(): ?string
-    {
-        return $this->resetPasswordToken;
-    }
-
-    public function setResetPasswordToken(?string $resetPasswordToken): static
-    {
-        $this->resetPasswordToken = $resetPasswordToken;
-
-        return $this;
-    }
-
-    public function getResetPasswordTokenExpiresAt(): ?\DateTimeImmutable
-    {
-        return $this->resetPasswordTokenExpiresAt;
-    }
-
-    public function setResetPasswordTokenExpiresAt(?\DateTimeImmutable $resetPasswordTokenExpiresAt): static
-    {
-        $this->resetPasswordTokenExpiresAt = $resetPasswordTokenExpiresAt;
-
         return $this;
     }
 }

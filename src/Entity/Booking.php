@@ -34,12 +34,14 @@ use Symfony\Component\Validator\Constraints as Assert;
 ])]
 class Booking
 {
+    // === Identifiant principal ===
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['booking:read'])]
     private ?int $id = null;
 
+    // === Relations principales ===
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['booking:read', 'booking:write'])]
@@ -52,6 +54,7 @@ class Booking
     #[Assert\NotBlank(message: 'Le passager est obligatoire')]
     private ?User $passenger = null;
 
+    // === Données de réservation ===
     #[ORM\Column]
     #[Groups(['booking:read', 'booking:write'])]
     #[Assert\NotBlank(message: 'Le nombre de places est obligatoire')]
@@ -70,16 +73,15 @@ class Booking
     #[Groups(['booking:read'])]
     private ?int $totalAmount = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $stripePaymentIntentId = null;
-
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $stripeTransferId = null;
-
+    // === Statut et historique ===
     #[ORM\Column(length: 20)]
     #[Groups(['booking:read'])]
     #[Assert\Choice(choices: ['pending', 'paid', 'completed', 'refunded', 'cancelled', 'failed'], message: 'Statut invalide')]
     private ?string $status = null;
+
+    #[ORM\Column]
+    #[Groups(['booking:read'])]
+    private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['booking:read'])]
@@ -98,10 +100,14 @@ class Booking
     #[Assert\Choice(choices: ['passenger', 'driver', null], message: 'Valeur invalide')]
     private ?string $cancelledBy = null;
 
-    #[ORM\Column]
-    #[Groups(['booking:read'])]
-    private ?\DateTimeImmutable $createdAt = null;
+    // === Paiement ===
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $stripePaymentIntentId = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $stripeTransferId = null;
+
+    // === Relations secondaires ===
     /**
      * @var Collection<int, Review>
      */
@@ -111,16 +117,19 @@ class Booking
     #[ORM\OneToOne(mappedBy: 'booking', cascade: ['persist', 'remove'])]
     private ?Conversation $conversation = null;
 
+    // === Constructeur ===
     public function __construct()
     {
         $this->reviews = new ArrayCollection();
     }
 
+    // === Getters / Setters - Identifiant ===
     public function getId(): ?int
     {
         return $this->id;
     }
 
+    // === Getters / Setters - Relations principales ===
     public function getTrip(): ?Trip
     {
         return $this->trip;
@@ -145,6 +154,7 @@ class Booking
         return $this;
     }
 
+    // === Getters / Setters - Données de réservation ===
     public function getSeatsBooked(): ?int
     {
         return $this->seatsBooked;
@@ -193,6 +203,7 @@ class Booking
         return $this;
     }
 
+    // === Getters / Setters - Paiement ===
     public function getStripePaymentIntentId(): ?string
     {
         return $this->stripePaymentIntentId;
@@ -217,6 +228,7 @@ class Booking
         return $this;
     }
 
+    // === Getters / Setters - Statut et historique ===
     public function getStatus(): ?string
     {
         return $this->status;
@@ -225,6 +237,18 @@ class Booking
     public function setStatus(string $status): static
     {
         $this->status = $status;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $createdAt): static
+    {
+        $this->createdAt = $createdAt;
 
         return $this;
     }
@@ -277,18 +301,7 @@ class Booking
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
-
-    public function setCreatedAt(\DateTimeImmutable $createdAt): static
-    {
-        $this->createdAt = $createdAt;
-
-        return $this;
-    }
-
+    // === Getters / Setters - Relations secondaires ===
     /**
      * @return Collection<int, Review>
      */
@@ -303,7 +316,6 @@ class Booking
             $this->reviews->add($review);
             $review->setBooking($this);
         }
-
         return $this;
     }
 
@@ -315,7 +327,6 @@ class Booking
                 $review->setBooking(null);
             }
         }
-
         return $this;
     }
 
@@ -330,7 +341,6 @@ class Booking
         if ($conversation->getBooking() !== $this) {
             $conversation->setBooking($this);
         }
-
         $this->conversation = $conversation;
 
         return $this;
