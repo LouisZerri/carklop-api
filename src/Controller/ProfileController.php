@@ -18,7 +18,7 @@ class ProfileController extends AbstractController
         private EntityManagerInterface $em
     ) {}
 
-    #[Route('/users/{id}/profile', name: 'user_profile', methods: ['GET'])]
+    #[Route('/users/{id}/profile', name: 'user_profile', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function profile(int $id): JsonResponse
     {
         $user = $this->em->getRepository(User::class)->find($id);
@@ -68,6 +68,7 @@ class ProfileController extends AbstractController
                 'author' => [
                     'id' => $review->getAuthor()->getId(),
                     'firstName' => $review->getAuthor()->getFirstName(),
+                    'lastName' => substr($review->getAuthor()->getLastName(), 0, 1) . '.',
                     'avatar' => $review->getAuthor()->getAvatar(),
                     'defaultAvatar' => $review->getAuthor()->getDefaultAvatar(),
                 ],

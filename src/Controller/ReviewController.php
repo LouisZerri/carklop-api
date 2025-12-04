@@ -82,7 +82,7 @@ class ReviewController extends AbstractController
         ], 201);
     }
 
-    #[Route('/user/{id}', name: 'review_by_user', methods: ['GET'])]
+    #[Route('/user/{id}', name: 'review_by_user', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function byUser(int $id): JsonResponse
     {
         $user = $this->em->getRepository(User::class)->find($id);
@@ -105,6 +105,7 @@ class ReviewController extends AbstractController
                 'author' => [
                     'id' => $review->getAuthor()->getId(),
                     'firstName' => $review->getAuthor()->getFirstName(),
+                    'lastName' => substr($review->getAuthor()->getLastName(), 0, 1) . '.',
                     'avatar' => $review->getAuthor()->getAvatar(),
                     'defaultAvatar' => $review->getAuthor()->getDefaultAvatar(),
                 ],
