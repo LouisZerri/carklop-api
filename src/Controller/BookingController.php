@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Booking;
 use App\Entity\Conversation;
+use App\Entity\SavingsEstimate;
 use App\Entity\Trip;
 use App\Entity\User;
 use App\Service\NotificationService;
@@ -84,6 +85,24 @@ class BookingController extends AbstractController
         $booking->setTotalAmount($totalAmount);
         $booking->setStatus('pending');
         $booking->setCreatedAt(new \DateTimeImmutable());
+
+        // Budget et économies estimées
+        if (isset($data['estimated_budget'])) {
+            $estimatedBudget = (int) $data['estimated_budget'];
+            $booking->setEstimatedBudget($estimatedBudget);
+
+            // Calculer les économies basées sur le pays de destination
+            $destinationCountry = $trip->getDestinationCountry();
+            $savingsEstimate = $this->em->getRepository(SavingsEstimate::class)
+                ->findOneBy(['countryCode' => $destinationCountry]);
+
+            if ($savingsEstimate && $estimatedBudget > 0) {
+                $avgPercent = ($savingsEstimate->getAlimentaire() + $savingsEstimate->getAlcool() 
+                    + $savingsEstimate->getCarburant() + $savingsEstimate->getTabac()) / 4;
+                $estimatedSavings = (int) round($estimatedBudget * abs($avgPercent) / 100);
+                $booking->setEstimatedSavings($estimatedSavings);
+            }
+        }
 
         $this->em->persist($booking);
         $this->em->flush();

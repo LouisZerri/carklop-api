@@ -34,6 +34,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 ])]
 class Booking
 {
+    /* ============= ATTRIBUTS ============= */
+
     // === Identifiant principal ===
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -54,7 +56,7 @@ class Booking
     #[Assert\NotBlank(message: 'Le passager est obligatoire')]
     private ?User $passenger = null;
 
-    // === Données de réservation ===
+    // === Données de réservation (infos principales) ===
     #[ORM\Column]
     #[Groups(['booking:read', 'booking:write'])]
     #[Assert\NotBlank(message: 'Le nombre de places est obligatoire')]
@@ -73,7 +75,14 @@ class Booking
     #[Groups(['booking:read'])]
     private ?int $totalAmount = null;
 
-    // === Statut et historique ===
+    // === Paiement Stripe ===
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $stripePaymentIntentId = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $stripeTransferId = null;
+
+    // === Dates/statut/historique ===
     #[ORM\Column(length: 20)]
     #[Groups(['booking:read'])]
     #[Assert\Choice(choices: ['pending', 'paid', 'completed', 'refunded', 'cancelled', 'failed'], message: 'Statut invalide')]
@@ -100,14 +109,8 @@ class Booking
     #[Assert\Choice(choices: ['passenger', 'driver', null], message: 'Valeur invalide')]
     private ?string $cancelledBy = null;
 
-    // === Paiement ===
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $stripePaymentIntentId = null;
+    // === Relations secondaires / autres infos ===
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $stripeTransferId = null;
-
-    // === Relations secondaires ===
     /**
      * @var Collection<int, Review>
      */
@@ -117,19 +120,30 @@ class Booking
     #[ORM\OneToOne(mappedBy: 'booking', cascade: ['persist', 'remove'])]
     private ?Conversation $conversation = null;
 
-    // === Constructeur ===
+    #[ORM\Column(nullable: true)]
+    #[Groups(['booking:read', 'booking:write'])]
+    private ?int $estimatedBudget = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['booking:read'])]
+    private ?int $estimatedSavings = null;
+
+    /* ============= CONSTRUCTEUR ============= */
+
     public function __construct()
     {
         $this->reviews = new ArrayCollection();
     }
 
-    // === Getters / Setters - Identifiant ===
+    /* ============= GETTERS / SETTERS ============= */
+
+    // ---- Identifiant ----
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    // === Getters / Setters - Relations principales ===
+    // ---- Relations principales ----
     public function getTrip(): ?Trip
     {
         return $this->trip;
@@ -138,7 +152,6 @@ class Booking
     public function setTrip(?Trip $trip): static
     {
         $this->trip = $trip;
-
         return $this;
     }
 
@@ -150,11 +163,10 @@ class Booking
     public function setPassenger(?User $passenger): static
     {
         $this->passenger = $passenger;
-
         return $this;
     }
 
-    // === Getters / Setters - Données de réservation ===
+    // ---- Données de réservation ----
     public function getSeatsBooked(): ?int
     {
         return $this->seatsBooked;
@@ -163,7 +175,6 @@ class Booking
     public function setSeatsBooked(int $seatsBooked): static
     {
         $this->seatsBooked = $seatsBooked;
-
         return $this;
     }
 
@@ -175,7 +186,6 @@ class Booking
     public function setPricePerSeat(int $pricePerSeat): static
     {
         $this->pricePerSeat = $pricePerSeat;
-
         return $this;
     }
 
@@ -187,7 +197,6 @@ class Booking
     public function setCommissionAmount(int $commissionAmount): static
     {
         $this->commissionAmount = $commissionAmount;
-
         return $this;
     }
 
@@ -199,11 +208,10 @@ class Booking
     public function setTotalAmount(int $totalAmount): static
     {
         $this->totalAmount = $totalAmount;
-
         return $this;
     }
 
-    // === Getters / Setters - Paiement ===
+    // ---- Paiement Stripe ----
     public function getStripePaymentIntentId(): ?string
     {
         return $this->stripePaymentIntentId;
@@ -212,7 +220,6 @@ class Booking
     public function setStripePaymentIntentId(?string $stripePaymentIntentId): static
     {
         $this->stripePaymentIntentId = $stripePaymentIntentId;
-
         return $this;
     }
 
@@ -224,11 +231,10 @@ class Booking
     public function setStripeTransferId(?string $stripeTransferId): static
     {
         $this->stripeTransferId = $stripeTransferId;
-
         return $this;
     }
 
-    // === Getters / Setters - Statut et historique ===
+    // ---- Dates/statut/historique ----
     public function getStatus(): ?string
     {
         return $this->status;
@@ -237,7 +243,6 @@ class Booking
     public function setStatus(string $status): static
     {
         $this->status = $status;
-
         return $this;
     }
 
@@ -249,7 +254,6 @@ class Booking
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
     }
 
@@ -261,7 +265,6 @@ class Booking
     public function setPaidAt(?\DateTimeImmutable $paidAt): static
     {
         $this->paidAt = $paidAt;
-
         return $this;
     }
 
@@ -273,7 +276,6 @@ class Booking
     public function setRefundedAt(?\DateTimeImmutable $refundedAt): static
     {
         $this->refundedAt = $refundedAt;
-
         return $this;
     }
 
@@ -285,7 +287,6 @@ class Booking
     public function setRefundedAmount(?int $refundedAmount): static
     {
         $this->refundedAmount = $refundedAmount;
-
         return $this;
     }
 
@@ -297,11 +298,10 @@ class Booking
     public function setCancelledBy(?string $cancelledBy): static
     {
         $this->cancelledBy = $cancelledBy;
-
         return $this;
     }
 
-    // === Getters / Setters - Relations secondaires ===
+    // ---- Relations secondaires ----
     /**
      * @return Collection<int, Review>
      */
@@ -342,7 +342,29 @@ class Booking
             $conversation->setBooking($this);
         }
         $this->conversation = $conversation;
+        return $this;
+    }
 
+    // ---- Estimations (savings/budget) ----
+    public function getEstimatedBudget(): ?int
+    {
+        return $this->estimatedBudget;
+    }
+
+    public function setEstimatedBudget(?int $estimatedBudget): static
+    {
+        $this->estimatedBudget = $estimatedBudget;
+        return $this;
+    }
+
+    public function getEstimatedSavings(): ?int
+    {
+        return $this->estimatedSavings;
+    }
+
+    public function setEstimatedSavings(?int $estimatedSavings): static
+    {
+        $this->estimatedSavings = $estimatedSavings;
         return $this;
     }
 }

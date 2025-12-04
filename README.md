@@ -187,7 +187,7 @@ php bin/phpunit tests/E2E/UserTest.php
 php bin/phpunit --filter testInscription
 ```
 
-### Couverture des tests (122 tests)
+### Couverture des tests (134 tests)
 
 | Fichier | Tests | Fonctionnalités |
 |---------|-------|-----------------|
@@ -204,6 +204,7 @@ php bin/phpunit --filter testInscription
 | SocialAuthTest | 7 | Google, Apple Sign In |
 | PasswordResetTest | 12 | Mot de passe oublié, reset |
 | ProfileTest | 6 | Profil public, bio, stats |
+| SavingsTest | 12 | Économies par pays, stats utilisateur |
 
 ## Endpoints API
 
@@ -224,10 +225,11 @@ php bin/phpunit --filter testInscription
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
 | GET | `/api/me` | Mon profil |
-| PATCH | `/api/users/{id}` | Modifier profil |
-| POST | `/api/upload/avatar` | Upload avatar |
+| GET | `/api/me/stats` | Mes statistiques (économies, trajets) |
 | GET | `/api/me/trips` | Mes trajets (conducteur) |
 | GET | `/api/me/bookings` | Mes réservations (passager) |
+| PATCH | `/api/users/{id}` | Modifier profil |
+| POST | `/api/upload/avatar` | Upload avatar |
 | GET | `/api/users/{id}/profile` | Profil public d'un utilisateur |
 
 ### Trajets
