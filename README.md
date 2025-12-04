@@ -98,6 +98,7 @@ src/
 | Review | Avis des passagers sur les conducteurs |
 | Notification | Historique des notifications |
 | DeviceToken | Tokens push Expo des appareils |
+| SavingsEstimate | Estimations d'économies par pays |
 
 ## Authentification
 
@@ -136,6 +137,40 @@ Les connexions sociales créent automatiquement un compte si l'email n'existe pa
 - Automatique 2h après l'heure de retour prévue
 - Scheduler toutes les 15 minutes
 
+## Estimation des économies
+
+Carklop calcule les économies potentielles selon le pays de destination.
+
+### Pays supportés
+
+| Pays | Code | Points forts |
+|------|------|--------------|
+| 🇩🇪 Allemagne | DE | Alimentaire et bières moins chers |
+| 🇱🇺 Luxembourg | LU | Carburant et tabac très avantageux |
+| 🇧🇪 Belgique | BE | Chocolat et bières à prix réduit |
+| 🇪🇸 Espagne | ES | Alimentation et tabac économiques |
+| 🇮🇹 Italie | IT | Produits alimentaires avantageux |
+| 🇨🇭 Suisse | CH | ⚠️ Plus cher - idéal pour travailleurs frontaliers |
+| 🇦🇩 Andorre | AD | Tabac et alcool très avantageux (duty-free) |
+
+### Exemple de réponse
+```json
+{
+  "country": "DE",
+  "countryName": "Allemagne",
+  "budget": 200,
+  "estimatedSavings": 25,
+  "breakdown": {
+    "alimentaire": 15,
+    "alcool": 8,
+    "carburant": 2,
+    "tabac": 2
+  },
+  "description": "Alimentaire et bières moins chers",
+  "message": "Économie estimée : ~25€ sur un budget de 200€"
+}
+```
+
 ## Tests
 ```bash
 # Créer la base de test
@@ -152,7 +187,7 @@ php bin/phpunit tests/E2E/UserTest.php
 php bin/phpunit --filter testInscription
 ```
 
-### Couverture des tests (104 tests)
+### Couverture des tests (122 tests)
 
 | Fichier | Tests | Fonctionnalités |
 |---------|-------|-----------------|
@@ -167,6 +202,8 @@ php bin/phpunit --filter testInscription
 | NotificationTest | 11 | Tokens push, notifications |
 | TransferTest | 6 | Transferts automatiques |
 | SocialAuthTest | 7 | Google, Apple Sign In |
+| PasswordResetTest | 12 | Mot de passe oublié, reset |
+| ProfileTest | 6 | Profil public, bio, stats |
 
 ## Endpoints API
 
@@ -241,6 +278,12 @@ php bin/phpunit --filter testInscription
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
 | POST | `/api/webhook/stripe` | Webhook Stripe |
+
+### Économies
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/api/savings/estimate?country=DE&budget=200` | Estimation des économies |
+| GET | `/api/savings/countries` | Liste des pays avec pourcentages |
 
 ## Commandes utiles
 ```bash
