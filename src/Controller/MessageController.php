@@ -46,7 +46,7 @@ class MessageController extends AbstractController
         $data = [];
         foreach ($conversations as $conv) {
             $otherUser = $conv->getDriver() === $user ? $conv->getPassenger() : $conv->getDriver();
-            
+
             // Dernier message
             $lastMessage = $this->em->getRepository(Message::class)->findOneBy(
                 ['conversation' => $conv],
@@ -93,6 +93,51 @@ class MessageController extends AbstractController
         return new JsonResponse($data);
     }
 
+    // Cette fonction retourne les détails d'une conversation (conducteur, passager et trajet lié)
+    #[Route('/conversations/{id}/details', name: 'message_conversation_details', methods: ['GET'])]
+    public function conversationDetails(int $id): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (!$user) {
+            return new JsonResponse(['error' => 'Non authentifié'], 401);
+        }
+
+        $conversation = $this->em->getRepository(Conversation::class)->find($id);
+
+        if (!$conversation) {
+            return new JsonResponse(['error' => 'Conversation introuvable'], 404);
+        }
+
+        if ($conversation->getDriver() !== $user && $conversation->getPassenger() !== $user) {
+            return new JsonResponse(['error' => 'Non autorisé'], 403);
+        }
+
+        return new JsonResponse([
+            'id' => $conversation->getId(),
+            'driver' => [
+                'id' => $conversation->getDriver()->getId(),
+                'firstName' => $conversation->getDriver()->getFirstName(),
+                'lastName' => $conversation->getDriver()->getLastName(),
+                'avatar' => $conversation->getDriver()->getAvatar(),
+                'defaultAvatar' => $conversation->getDriver()->getDefaultAvatar(),
+            ],
+            'passenger' => [
+                'id' => $conversation->getPassenger()->getId(),
+                'firstName' => $conversation->getPassenger()->getFirstName(),
+                'lastName' => $conversation->getPassenger()->getLastName(),
+                'avatar' => $conversation->getPassenger()->getAvatar(),
+                'defaultAvatar' => $conversation->getPassenger()->getDefaultAvatar(),
+            ],
+            'trip' => [
+                'id' => $conversation->getBooking()->getTrip()->getId(),
+                'departureCity' => $conversation->getBooking()->getTrip()->getDepartureCity(),
+                'destinationCity' => $conversation->getBooking()->getTrip()->getDestinationCity(),
+            ],
+        ]);
+    }
+
     /**
      * Messages d'une conversation
      */
@@ -130,12 +175,13 @@ class MessageController extends AbstractController
         }
         $this->em->flush();
 
-        $data = [];
+        $messagesData = [];
         foreach ($messages as $message) {
-            $data[] = [
+            $messagesData[] = [
                 'id' => $message->getId(),
                 'content' => $message->getContent(),
                 'isMe' => $message->getSender() === $user,
+                'senderId' => $message->getSender()->getId(),
                 'sender' => [
                     'id' => $message->getSender()->getId(),
                     'firstName' => $message->getSender()->getFirstName(),
@@ -147,7 +193,29 @@ class MessageController extends AbstractController
             ];
         }
 
-        return new JsonResponse($data);
+        // Retourner la conversation AVEC les messages
+        return new JsonResponse([
+            'id' => $conversation->getId(),
+            'driver' => [
+                'id' => $conversation->getDriver()->getId(),
+                'firstName' => $conversation->getDriver()->getFirstName(),
+                'lastName' => $conversation->getDriver()->getLastName(),
+                'avatar' => $conversation->getDriver()->getAvatar(),
+                'defaultAvatar' => $conversation->getDriver()->getDefaultAvatar(),
+            ],
+            'passenger' => [
+                'id' => $conversation->getPassenger()->getId(),
+                'firstName' => $conversation->getPassenger()->getFirstName(),
+                'lastName' => $conversation->getPassenger()->getLastName(),
+                'avatar' => $conversation->getPassenger()->getAvatar(),
+                'defaultAvatar' => $conversation->getPassenger()->getDefaultAvatar(),
+            ],
+            'trip' => [
+                'departureCity' => $conversation->getBooking()->getTrip()->getDepartureCity(),
+                'destinationCity' => $conversation->getBooking()->getTrip()->getDestinationCity(),
+            ],
+            'messages' => $messagesData,
+        ]);
     }
 
     /**
@@ -193,8 +261,8 @@ class MessageController extends AbstractController
         $this->em->flush();
 
         // Notifier l'autre utilisateur
-        $otherUser = $conversation->getDriver() === $user 
-            ? $conversation->getPassenger() 
+        $otherUser = $conversation->getDriver() === $user
+            ? $conversation->getPassenger()
             : $conversation->getDriver();
 
         $this->notificationService->send(
