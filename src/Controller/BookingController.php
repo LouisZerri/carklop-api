@@ -215,7 +215,7 @@ class BookingController extends AbstractController
                 'avatar' => $booking->getPassenger()->getAvatar(),
                 'defaultAvatar' => $booking->getPassenger()->getDefaultAvatar(),
             ],
-            'conversation_id' => $booking->getConversation()?->getId(),
+            'conversationId' => $booking->getConversation()?->getId(),
         ]);
     }
 
@@ -268,7 +268,7 @@ class BookingController extends AbstractController
         return new JsonResponse([
             'message' => 'Réservation confirmée',
             'booking_id' => $booking->getId(),
-            'conversation_id' => $conversation->getId(),
+            'conversationId' => $conversation->getId(),
             'status' => 'paid',
         ]);
     }

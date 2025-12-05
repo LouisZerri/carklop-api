@@ -38,7 +38,7 @@ class MeController extends AbstractController
     }
 
     /**
-     * Trajets où je suis conducteur
+     * Trajets où je suis conducteur (liste)
      */
     #[Route('/trips', name: 'me_trips', methods: ['GET'])]
     public function myTrips(): JsonResponse
@@ -54,6 +54,61 @@ class MeController extends AbstractController
         $data = $this->serializer->serialize($trips, 'json', ['groups' => 'trip:read']);
 
         return new JsonResponse(json_decode($data), 200);
+    }
+
+    /**
+     * Détail d'un trajet où je suis conducteur
+     */
+    #[Route('/trips/{id}', name: 'api_me_trip_detail', methods: ['GET'])]
+    public function myTripDetail(int $id): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['error' => 'Non authentifié'], 401);
+        }
+
+        $trip = $this->em->getRepository(Trip::class)->find($id);
+        if (!$trip || $trip->getDriver() !== $user) {
+            return new JsonResponse(['error' => 'Trajet non trouvé'], 404);
+        }
+
+        $bookings = $this->em->getRepository(Booking::class)->findBy(['trip' => $trip]);
+
+        return new JsonResponse([
+            'id' => $trip->getId(),
+            'departureCity' => $trip->getDepartureCity(),
+            'departureCountry' => $trip->getDepartureCountry(),
+            'departureAddress' => $trip->getDepartureAddress(),
+            'destinationCity' => $trip->getDestinationCity(),
+            'destinationCountry' => $trip->getDestinationCountry(),
+            'destinationAddress' => $trip->getDestinationAddress(),
+            'departureAt' => $trip->getDepartureAt()?->format('c'),
+            'returnAt' => $trip->getReturnAt()?->format('c'),
+            'pricePerSeat' => $trip->getPricePerSeat(),
+            'availableSeats' => $trip->getAvailableSeats(),
+            'status' => $trip->getStatus(),
+            'description' => $trip->getDescription(),
+            'bookings' => array_map(function (Booking $booking) {
+                return [
+                    'id' => $booking->getId(),
+                    'seatsBooked' => $booking->getSeatsBooked(),
+                    'totalAmount' => $booking->getTotalAmount(),
+                    'status' => $booking->getStatus(),
+                    'createdAt' => $booking->getCreatedAt()?->format('c'),
+                    'conversationId' => $booking->getConversation()?->getId(),
+                    'passenger' => [
+                        'id' => $booking->getPassenger()->getId(),
+                        'firstName' => $booking->getPassenger()->getFirstName(),
+                        'lastName' => substr($booking->getPassenger()->getLastName(), 0, 1) . '.',
+                        'avatar' => $booking->getPassenger()->getAvatar(),
+                        'defaultAvatar' => $booking->getPassenger()->getDefaultAvatar(),
+                        'averageRating' => $booking->getPassenger()->getAverageRating(),
+                        'reviewsCount' => $booking->getPassenger()->getReviewsCount(),
+                    ],
+                ];
+            }, $bookings),
+        ]);
     }
 
     /**
@@ -105,6 +160,9 @@ class MeController extends AbstractController
         return new JsonResponse($bookings);
     }
 
+    /**
+     * Statistiques sur mes voyages et économies réalisées
+     */
     #[Route('/stats', name: 'me_stats', methods: ['GET'])]
     public function stats(EntityManagerInterface $em): JsonResponse
     {
@@ -177,59 +235,6 @@ class MeController extends AbstractController
             'message' => $totalSavings > 0
                 ? "{$totalSavings}€ économisés sur {$totalTrips} trajets"
                 : "Aucune économie pour le moment",
-        ]);
-    }
-
-    #[Route('/api/me/trips/{id}', name: 'api_me_trip_detail', methods: ['GET'])]
-    public function myTripDetail(int $id): JsonResponse
-    {
-        /** @var User $user */
-        $user = $this->getUser();
-        if (!$user) {
-            return new JsonResponse(['error' => 'Non authentifié'], 401);
-        }
-
-        $trip = $this->em->getRepository(Trip::class)->find($id);
-        if (!$trip || $trip->getDriver() !== $user) {
-            return new JsonResponse(['error' => 'Trajet non trouvé'], 404);
-        }
-
-        $bookings = $this->em->getRepository(Booking::class)->findBy(['trip' => $trip]);
-
-        return new JsonResponse([
-            'id' => $trip->getId(),
-            'departureCity' => $trip->getDepartureCity(),
-            'departureCountry' => $trip->getDepartureCountry(),
-            'departureAddress' => $trip->getDepartureAddress(),
-            'destinationCity' => $trip->getDestinationCity(),
-            'destinationCountry' => $trip->getDestinationCountry(),
-            'destinationAddress' => $trip->getDestinationAddress(),
-            'departureAt' => $trip->getDepartureAt()?->format('c'),
-            'returnAt' => $trip->getReturnAt()?->format('c'),
-            'pricePerSeat' => $trip->getPricePerSeat(),
-            'availableSeats' => $trip->getAvailableSeats(),
-            'totalSeats' => $trip->getTotalSeats(),
-            'status' => $trip->getStatus(),
-            'description' => $trip->getDescription(),
-            'bookings' => array_map(function (Booking $booking) {
-                return [
-                    'id' => $booking->getId(),
-                    'seatsBooked' => $booking->getSeatsBooked(),
-                    'totalAmount' => $booking->getTotalAmount(),
-                    'status' => $booking->getStatus(),
-                    'createdAt' => $booking->getCreatedAt()?->format('c'),
-                    'conversationId' => $booking->getConversation()?->getId(),
-                    'passenger' => [
-                        'id' => $booking->getPassenger()->getId(),
-                        'firstName' => $booking->getPassenger()->getFirstName(),
-                        'lastName' => substr($booking->getPassenger()->getLastName(), 0, 1) . '.',
-                        'avatar' => $booking->getPassenger()->getAvatar(),
-                        'defaultAvatar' => $booking->getPassenger()->getDefaultAvatar(),
-                        'averageRating' => $booking->getPassenger()->getAverageRating(),
-                        'reviewsCount' => $booking->getPassenger()->getReviewsCount(),
-                    ],
-                ];
-            }, $bookings),
         ]);
     }
 }

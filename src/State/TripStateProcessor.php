@@ -41,7 +41,7 @@ class TripStateProcessor implements ProcessorInterface
                 $data->setCreatedAt(new \DateTimeImmutable());
                 
                 if (!$data->getStatus()) {
-                    $data->setStatus('draft');
+                    $data->setStatus('published');
                 }
             }
             
