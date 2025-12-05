@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Booking;
 use App\Entity\Trip;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -14,7 +15,8 @@ use Symfony\Component\Serializer\SerializerInterface;
 class MeController extends AbstractController
 {
     public function __construct(
-        private SerializerInterface $serializer
+        private SerializerInterface $serializer,
+        private EntityManagerInterface $em
     ) {}
 
     /**
@@ -67,10 +69,40 @@ class MeController extends AbstractController
             return new JsonResponse(['error' => 'Non authentifié'], 401);
         }
 
-        $bookings = $user->getBookings();
-        $data = $this->serializer->serialize($bookings, 'json', ['groups' => 'booking:read']);
+        $bookings = [];
+        foreach ($user->getBookings() as $booking) {
+            $trip = $booking->getTrip();
+            $driver = $trip->getDriver();
 
-        return new JsonResponse(json_decode($data), 200);
+            $bookings[] = [
+                'id' => $booking->getId(),
+                'seatsBooked' => $booking->getSeatsBooked(),
+                'totalAmount' => $booking->getTotalAmount(),
+                'status' => $booking->getStatus(),
+                'estimatedSavings' => $booking->getEstimatedSavings(),
+                'createdAt' => $booking->getCreatedAt()?->format('c'),
+                'trip' => [
+                    'id' => $trip->getId(),
+                    'departureCity' => $trip->getDepartureCity(),
+                    'departureCountry' => $trip->getDepartureCountry(),
+                    'destinationCity' => $trip->getDestinationCity(),
+                    'destinationCountry' => $trip->getDestinationCountry(),
+                    'departureAt' => $trip->getDepartureAt()?->format('c'),
+                    'returnAt' => $trip->getReturnAt()?->format('c'),
+                ],
+                'driver' => [
+                    'id' => $driver->getId(),
+                    'firstName' => $driver->getFirstName(),
+                    'lastName' => substr($driver->getLastName(), 0, 1) . '.',
+                    'avatar' => $driver->getAvatar(),
+                    'defaultAvatar' => $driver->getDefaultAvatar(),
+                    'averageRating' => $driver->getAverageRating(),
+                    'reviewsCount' => $driver->getReviewsCount(),
+                ],
+            ];
+        }
+
+        return new JsonResponse($bookings);
     }
 
     #[Route('/stats', name: 'me_stats', methods: ['GET'])]
@@ -145,6 +177,59 @@ class MeController extends AbstractController
             'message' => $totalSavings > 0
                 ? "{$totalSavings}€ économisés sur {$totalTrips} trajets"
                 : "Aucune économie pour le moment",
+        ]);
+    }
+
+    #[Route('/api/me/trips/{id}', name: 'api_me_trip_detail', methods: ['GET'])]
+    public function myTripDetail(int $id): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['error' => 'Non authentifié'], 401);
+        }
+
+        $trip = $this->em->getRepository(Trip::class)->find($id);
+        if (!$trip || $trip->getDriver() !== $user) {
+            return new JsonResponse(['error' => 'Trajet non trouvé'], 404);
+        }
+
+        $bookings = $this->em->getRepository(Booking::class)->findBy(['trip' => $trip]);
+
+        return new JsonResponse([
+            'id' => $trip->getId(),
+            'departureCity' => $trip->getDepartureCity(),
+            'departureCountry' => $trip->getDepartureCountry(),
+            'departureAddress' => $trip->getDepartureAddress(),
+            'destinationCity' => $trip->getDestinationCity(),
+            'destinationCountry' => $trip->getDestinationCountry(),
+            'destinationAddress' => $trip->getDestinationAddress(),
+            'departureAt' => $trip->getDepartureAt()?->format('c'),
+            'returnAt' => $trip->getReturnAt()?->format('c'),
+            'pricePerSeat' => $trip->getPricePerSeat(),
+            'availableSeats' => $trip->getAvailableSeats(),
+            'totalSeats' => $trip->getTotalSeats(),
+            'status' => $trip->getStatus(),
+            'description' => $trip->getDescription(),
+            'bookings' => array_map(function (Booking $booking) {
+                return [
+                    'id' => $booking->getId(),
+                    'seatsBooked' => $booking->getSeatsBooked(),
+                    'totalAmount' => $booking->getTotalAmount(),
+                    'status' => $booking->getStatus(),
+                    'createdAt' => $booking->getCreatedAt()?->format('c'),
+                    'conversationId' => $booking->getConversation()?->getId(),
+                    'passenger' => [
+                        'id' => $booking->getPassenger()->getId(),
+                        'firstName' => $booking->getPassenger()->getFirstName(),
+                        'lastName' => substr($booking->getPassenger()->getLastName(), 0, 1) . '.',
+                        'avatar' => $booking->getPassenger()->getAvatar(),
+                        'defaultAvatar' => $booking->getPassenger()->getDefaultAvatar(),
+                        'averageRating' => $booking->getPassenger()->getAverageRating(),
+                        'reviewsCount' => $booking->getPassenger()->getReviewsCount(),
+                    ],
+                ];
+            }, $bookings),
         ]);
     }
 }

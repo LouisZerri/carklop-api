@@ -63,6 +63,29 @@ class BookingController extends AbstractController
             return new JsonResponse(['error' => 'Vous ne pouvez pas réserver votre propre trajet'], 400);
         }
 
+        // Vérifier si l'utilisateur a déjà une réservation en cours sur un autre trajet
+        $activeBooking = $this->em->createQueryBuilder()
+            ->select('b')
+            ->from(Booking::class, 'b')
+            ->join('b.trip', 't')
+            ->where('b.passenger = :passenger')
+            ->andWhere('b.status IN (:statuses)')
+            ->andWhere('t.status NOT IN (:tripStatuses)')
+            ->setParameter('passenger', $user)
+            ->setParameter('statuses', ['pending', 'paid'])
+            ->setParameter('tripStatuses', ['completed', 'cancelled'])
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if ($activeBooking) {
+            return new JsonResponse([
+                'error' => 'Vous avez déjà un trajet en cours. Attendez qu\'il soit terminé pour en réserver un autre.',
+                'active_booking_id' => $activeBooking->getId(),
+                'active_trip_id' => $activeBooking->getTrip()->getId(),
+            ], 400);
+        }
+
         $seats = (int) $data['seats'];
 
         if ($seats < 1 || $seats > $trip->getAvailableSeats()) {
@@ -97,7 +120,7 @@ class BookingController extends AbstractController
                 ->findOneBy(['countryCode' => $destinationCountry]);
 
             if ($savingsEstimate && $estimatedBudget > 0) {
-                $avgPercent = ($savingsEstimate->getAlimentaire() + $savingsEstimate->getAlcool() 
+                $avgPercent = ($savingsEstimate->getAlimentaire() + $savingsEstimate->getAlcool()
                     + $savingsEstimate->getCarburant() + $savingsEstimate->getTabac()) / 4;
                 $estimatedSavings = (int) round($estimatedBudget * abs($avgPercent) / 100);
                 $booking->setEstimatedSavings($estimatedSavings);
@@ -128,7 +151,74 @@ class BookingController extends AbstractController
             return new JsonResponse(['error' => 'Erreur paiement: ' . $e->getMessage()], 500);
         }
     }
-    
+
+    #[Route('/{id}/details', name: 'booking_show', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function show(int $id): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (!$user) {
+            return new JsonResponse(['error' => 'Non authentifié'], 401);
+        }
+
+        $booking = $this->em->getRepository(Booking::class)->find($id);
+
+        if (!$booking) {
+            return new JsonResponse(['error' => 'Réservation introuvable'], 404);
+        }
+
+        // Seul le passager ou le conducteur peut voir la réservation
+        $trip = $booking->getTrip();
+        $driver = $trip->getDriver();
+
+        if ($booking->getPassenger() !== $user && $driver !== $user) {
+            return new JsonResponse(['error' => 'Non autorisé'], 403);
+        }
+
+        return new JsonResponse([
+            'id' => $booking->getId(),
+            'seatsBooked' => $booking->getSeatsBooked(),
+            'pricePerSeat' => $booking->getPricePerSeat(),
+            'commissionAmount' => $booking->getCommissionAmount(),
+            'totalAmount' => $booking->getTotalAmount(),
+            'status' => $booking->getStatus(),
+            'estimatedBudget' => $booking->getEstimatedBudget(),
+            'estimatedSavings' => $booking->getEstimatedSavings(),
+            'createdAt' => $booking->getCreatedAt()?->format('c'),
+            'paidAt' => $booking->getPaidAt()?->format('c'),
+            'trip' => [
+                'id' => $trip->getId(),
+                'departureCity' => $trip->getDepartureCity(),
+                'departureCountry' => $trip->getDepartureCountry(),
+                'destinationCity' => $trip->getDestinationCity(),
+                'destinationCountry' => $trip->getDestinationCountry(),
+                'departureAt' => $trip->getDepartureAt()?->format('c'),
+                'returnAt' => $trip->getReturnAt()?->format('c'),
+                'stayDuration' => $trip->getStayDuration(),
+                'distance' => $trip->getDistance(),
+                'description' => $trip->getDescription(),
+            ],
+            'driver' => [
+                'id' => $driver->getId(),
+                'firstName' => $driver->getFirstName(),
+                'lastName' => substr($driver->getLastName(), 0, 1) . '.',
+                'avatar' => $driver->getAvatar(),
+                'defaultAvatar' => $driver->getDefaultAvatar(),
+                'averageRating' => $driver->getAverageRating(),
+                'reviewsCount' => $driver->getReviewsCount(),
+            ],
+            'passenger' => [
+                'id' => $booking->getPassenger()->getId(),
+                'firstName' => $booking->getPassenger()->getFirstName(),
+                'lastName' => substr($booking->getPassenger()->getLastName(), 0, 1) . '.',
+                'avatar' => $booking->getPassenger()->getAvatar(),
+                'defaultAvatar' => $booking->getPassenger()->getDefaultAvatar(),
+            ],
+            'conversation_id' => $booking->getConversation()?->getId(),
+        ]);
+    }
+
     #[Route('/{id}/confirm', name: 'booking_confirm', methods: ['POST'])]
     public function confirm(int $id): JsonResponse
     {
@@ -263,7 +353,6 @@ class BookingController extends AbstractController
                 'driver_receives' => $driverReceives,
                 'hours_until_departure' => round($hoursUntilDeparture, 1),
             ]);
-
         } catch (\Exception $e) {
             return new JsonResponse(['error' => 'Erreur remboursement: ' . $e->getMessage()], 500);
         }
@@ -315,7 +404,6 @@ class BookingController extends AbstractController
                     $booking->setRefundedAmount($booking->getTotalAmount());
                     $booking->setRefundedAt(new \DateTimeImmutable());
                     $refundedCount++;
-
                 } catch (\Exception $e) {
                     // Log l'erreur mais continue avec les autres
                     continue;

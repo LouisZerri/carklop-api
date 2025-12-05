@@ -227,10 +227,8 @@ php bin/phpunit --filter testInscription
 | GET | `/api/me` | Mon profil |
 | GET | `/api/me/stats` | Mes statistiques (économies, trajets) |
 | GET | `/api/me/trips` | Mes trajets (conducteur) |
+| GET | `/api/me/trips/{id}` | Détail d'un trajet avec passagers |
 | GET | `/api/me/bookings` | Mes réservations (passager) |
-| PATCH | `/api/users/{id}` | Modifier profil |
-| POST | `/api/upload/avatar` | Upload avatar |
-| GET | `/api/users/{id}/profile` | Profil public d'un utilisateur |
 
 ### Trajets
 | Méthode | Endpoint | Description |
@@ -243,8 +241,9 @@ php bin/phpunit --filter testInscription
 ### Réservations
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| POST | `/api/bookings/create` | Créer réservation |
-| POST | `/api/bookings/{id}/confirm` | Confirmer paiement |
+| POST | `/api/bookings/create` | Créer une réservation |
+| GET | `/api/bookings/{id}/details` | Détails d'une réservation |
+| POST | `/api/bookings/{id}/confirm` | Confirmer après paiement |
 | POST | `/api/bookings/{id}/cancel` | Annuler (passager) |
 | POST | `/api/bookings/trip/{tripId}/cancel` | Annuler trajet (conducteur) |
 
