@@ -9,13 +9,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Serializer\SerializerInterface;
 
 #[Route('/api/me')]
 class MeController extends AbstractController
 {
     public function __construct(
-        private SerializerInterface $serializer,
         private EntityManagerInterface $em
     ) {}
 
@@ -32,9 +30,21 @@ class MeController extends AbstractController
             return new JsonResponse(['error' => 'Non authentifié'], 401);
         }
 
-        $data = $this->serializer->serialize($user, 'json', ['groups' => 'user:read']);
-
-        return new JsonResponse(json_decode($data), 200);
+        return new JsonResponse([
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'firstName' => $user->getFirstName(),
+            'lastName' => $user->getLastName(),
+            'phone' => $user->getPhone(),
+            'avatar' => $user->getAvatar(),
+            'defaultAvatar' => $user->getDefaultAvatar(),
+            'bio' => $user->getBio(),
+            'isVerified' => $user->isVerified(),
+            'stripeAccountId' => $user->getStripeAccountId(),
+            'averageRating' => $user->getAverageRating(),
+            'reviewsCount' => $user->getReviewsCount(),
+            'createdAt' => $user->getCreatedAt()?->format('c'),
+        ]);
     }
 
     /**
@@ -50,10 +60,33 @@ class MeController extends AbstractController
             return new JsonResponse(['error' => 'Non authentifié'], 401);
         }
 
-        $trips = $user->getTrips();
-        $data = $this->serializer->serialize($trips, 'json', ['groups' => 'trip:read']);
+        $trips = [];
+        foreach ($user->getTrips() as $trip) {
+            // Calculer les places réservées
+            $bookedSeats = 0;
+            foreach ($trip->getBookings() as $booking) {
+                if (in_array($booking->getStatus(), ['paid', 'completed'])) {
+                    $bookedSeats += $booking->getSeatsBooked();
+                }
+            }
 
-        return new JsonResponse(json_decode($data), 200);
+            $trips[] = [
+                'id' => $trip->getId(),
+                'departureCity' => $trip->getDepartureCity(),
+                'departureCountry' => $trip->getDepartureCountry(),
+                'destinationCity' => $trip->getDestinationCity(),
+                'destinationCountry' => $trip->getDestinationCountry(),
+                'departureAt' => $trip->getDepartureAt()?->format('c'),
+                'returnAt' => $trip->getReturnAt()?->format('c'),
+                'pricePerSeat' => $trip->getPricePerSeat(),
+                'availableSeats' => $trip->getAvailableSeats(),
+                'bookedSeats' => $bookedSeats,
+                'status' => $trip->getStatus(),
+                'description' => $trip->getDescription(),
+            ];
+        }
+
+        return new JsonResponse($trips);
     }
 
     /**

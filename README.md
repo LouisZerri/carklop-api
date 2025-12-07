@@ -132,14 +132,28 @@ Les connexions sociales créent automatiquement un compte si l'email n'existe pa
 
 - Passager remboursé à 100% quel que soit le délai
 
+### Confirmation de fin de trajet
+
+| Action | Qui | Délai | Résultat |
+|--------|-----|-------|----------|
+| Confirmer le retour | Passager | Après returnAt | Transfert immédiat au conducteur |
+| Auto-completion | Système (cron) | 48h après returnAt | Transfert automatique |
+
+Le passager peut laisser un avis uniquement après avoir confirmé la fin du trajet.
+
 ### Transfert au conducteur
 
-- Automatique 2h après l'heure de retour prévue
+- Manuel : déclenché quand le passager confirme la fin du trajet
+- Automatique : 48h après l'heure de retour si le passager n'a pas confirmé
 - Scheduler toutes les 15 minutes
+
+### Réservation unique
+
+Un passager ne peut avoir qu'une seule réservation active à la fois. Il doit attendre que le trajet soit terminé pour en réserver un nouveau.
 
 ## Estimation des économies
 
-Carklop calcule les économies potentielles selon le pays de destination.
+CarKlop calcule les économies potentielles selon le pays de destination.
 
 ### Pays supportés
 
@@ -153,7 +167,7 @@ Carklop calcule les économies potentielles selon le pays de destination.
 | 🇨🇭 Suisse | CH | ⚠️ Plus cher - idéal pour travailleurs frontaliers |
 | 🇦🇩 Andorre | AD | Tabac et alcool très avantageux (duty-free) |
 
-### Exemple de réponse
+### GET /api/savings/estimate
 ```json
 {
   "country": "DE",
@@ -168,6 +182,24 @@ Carklop calcule les économies potentielles selon le pays de destination.
   },
   "description": "Alimentaire et bières moins chers",
   "message": "Économie estimée : ~25€ sur un budget de 200€"
+}
+```
+
+### GET /api/me/stats
+```json
+{
+  "totalSavings": 127,
+  "tripsAsPassenger": 5,
+  "tripsAsDriver": 2,
+  "monthlyStats": [
+    {
+      "month": "2024-12",
+      "label": "December 2024",
+      "savings": 45,
+      "trips": 2
+    }
+  ],
+  "message": "127€ économisés sur 5 trajets"
 }
 ```
 
@@ -229,6 +261,9 @@ php bin/phpunit --filter testInscription
 | GET | `/api/me/trips` | Mes trajets (conducteur) |
 | GET | `/api/me/trips/{id}` | Détail d'un trajet avec passagers |
 | GET | `/api/me/bookings` | Mes réservations (passager) |
+| PATCH | `/api/users/{id}` | Modifier mon profil |
+| POST | `/api/upload/avatar` | Upload avatar |
+| GET | `/api/users/{id}/profile` | Profil public d'un utilisateur |
 
 ### Trajets
 | Méthode | Endpoint | Description |
@@ -243,9 +278,10 @@ php bin/phpunit --filter testInscription
 |---------|----------|-------------|
 | POST | `/api/bookings/create` | Créer une réservation |
 | GET | `/api/bookings/{id}/details` | Détails d'une réservation |
-| POST | `/api/bookings/{id}/confirm` | Confirmer après paiement |
+| POST | `/api/bookings/{id}/confirm` | Confirmer après paiement Stripe |
+| POST | `/api/bookings/{id}/complete` | Confirmer fin de trajet (passager) |
 | POST | `/api/bookings/{id}/cancel` | Annuler (passager) |
-| POST | `/api/bookings/trip/{tripId}/cancel` | Annuler trajet (conducteur) |
+| POST | `/api/bookings/trip/{tripId}/cancel` | Annuler trajet complet (conducteur) |
 
 ### Messages
 | Méthode | Endpoint | Description |
@@ -286,6 +322,17 @@ php bin/phpunit --filter testInscription
 | GET | `/api/savings/estimate?country=DE&budget=200` | Estimation des économies |
 | GET | `/api/savings/countries` | Liste des pays avec pourcentages |
 
+## Flux de réservation
+```
+1. Passager recherche un trajet
+2. POST /api/bookings/create → reçoit client_secret Stripe
+3. Passager paie via Stripe (frontend)
+4. POST /api/bookings/{id}/confirm → booking "paid", conversation créée
+5. Trajet effectué...
+6. POST /api/bookings/{id}/complete → booking "completed", transfert conducteur
+7. POST /api/reviews → passager laisse un avis
+```
+
 ## Commandes utiles
 ```bash
 # Vider le cache
@@ -296,6 +343,9 @@ php bin/console debug:router
 
 # Lancer le scheduler (production)
 php bin/console messenger:consume scheduler_default
+
+# Compléter manuellement les trajets expirés
+php bin/console messenger:consume async --limit=10
 ```
 
 ## Configuration OAuth
@@ -346,3 +396,4 @@ php bin/console messenger:consume scheduler_default
 ## Licence
 
 Propriétaire - Louis ZERRI
+```
