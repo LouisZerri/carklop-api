@@ -213,8 +213,10 @@ class MeController extends AbstractController
             ->join('b.trip', 't')
             ->where('b.passenger = :user')
             ->andWhere('b.status IN (:statuses)')
+            ->andWhere('t.departureAt < :now')
             ->setParameter('user', $user)
             ->setParameter('statuses', ['completed', 'paid'])
+            ->setParameter('now', new \DateTime()) 
             ->orderBy('t.departureAt', 'DESC')
             ->getQuery()
             ->getResult();
